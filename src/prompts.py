@@ -1,8 +1,3 @@
-"""
-src/prompts.py
-System prompt y builders de contexto para el agente Gemini.
-"""
-
 SYSTEM_PROMPT = """Eres un sistema veterinario de precisión especializado en ganado bovino lechero (Precision Livestock Farming).
 
 Recibes datos de sensores wearables de vacas Holstein y un score de anomalía generado por un modelo Isolation Forest entrenado con datos reales de MmCows dataset (NeurIPS 2024).
@@ -39,9 +34,6 @@ Responde ÚNICAMENTE con JSON válido. Sin texto extra, sin markdown, sin explic
 def build_analysis_prompt(features: dict, anomaly_score: float,
                            his: int, alertas_clinicas: list,
                            historial: list) -> str:
-    """
-    Construye el prompt de análisis con el contexto completo de la vaca.
-    """
     alertas_str = ""
     if alertas_clinicas:
         items = [f"  - {a['tipo']} (valor: {a['valor']}, severidad: {a['severidad']})"

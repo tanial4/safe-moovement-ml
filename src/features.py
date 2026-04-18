@@ -1,7 +1,3 @@
-"""
-src/features.py — v2
-Construye SensorFeatures a partir de lecturas crudas.
-"""
 import numpy as np
 from typing import Optional
 
@@ -14,14 +10,6 @@ def accel_magnitude(ax, ay, az):
 
 
 def build_features_from_readings(readings: list, cow_id: str) -> Optional[dict]:
-    """
-    readings: lista de dicts con keys:
-        timestamp, accel_x, accel_y, accel_z, body_temp
-        + opcionales: heart_rate, respiratory_rate,
-                      rumination_min, hydration_freq,
-                      humidity, ambient_temp, thi_score,
-                      elevation, lying_bin
-    """
     if len(readings) < 5:
         return None
 

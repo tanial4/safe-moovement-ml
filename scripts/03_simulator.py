@@ -1,12 +1,3 @@
-"""
-scripts/03_simulator.py — v3
-Acumula lecturas en buffer por vaca antes de mandar al modelo.
-Buffer de 5 lecturas → equivale a 25s de datos antes de evaluar.
-
-Uso:
-    python scripts/03_simulator.py --direct-ml --backend http://localhost:8001 --inject-sick 3
-    python scripts/03_simulator.py --backend http://localhost:8000 --inject-sick 3 --escape-at 7
-"""
 import argparse
 import time
 import random

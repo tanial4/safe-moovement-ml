@@ -1,18 +1,3 @@
-"""
-scripts/01_clean_mmcows.py
-Features reales de MmCows:
-  immu/T{id}/*.csv      → acelerómetro (mean_accel, std_accel, lying_ratio_accel)
-  cbt/C{id}.csv         → temperatura corporal (body_temp, temp_trend)
-  ankle/C{id}/*.csv     → comportamiento (lying_ratio — más preciso que accel)
-  thi/S{id}.csv         → ambiente (humidity, ambient_temp, thi_score)
-  pressure/T{id}/*.csv  → elevación (elevation_std — variabilidad de movimiento vertical)
-
-Features simuladas añadidas al CSV con distribuciones reales de literatura:
-  heart_rate_mean, heart_rate_std
-  respiratory_rate
-  rumination_minutes
-  hydration_freq
-"""
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -50,7 +35,6 @@ def clamp(v, lo, hi):
 
 
 def sim_feature(dist, n=1):
-    """Genera n muestras de una distribución normal clampada."""
     vals = [clamp(np.random.normal(dist["mean"], dist["std"]),
                   dist["min"], dist["max"]) for _ in range(n)]
     return vals[0] if n == 1 else vals
@@ -138,7 +122,6 @@ def load_pressure(cow_id):
 
 
 def load_thi():
-    """THI es ambiental — mismos datos para todas las vacas. Usamos average.csv."""
     path = RAW / "thi" / "average.csv"
     if not path.exists():
         # intentar S01

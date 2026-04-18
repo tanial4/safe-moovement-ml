@@ -1,7 +1,3 @@
-"""
-src/gemini_client.py
-Cliente del agente Gemini. Solo se llama cuando anomaly_score > 0.7.
-"""
 import os
 import json
 import time
@@ -47,15 +43,6 @@ def analyze(
     alertas_clinicas: list,
     historial:       list = [],
 ) -> dict:
-    """
-    Llama a Gemini para analizar el estado de una vaca anómala.
-    Solo llamar cuando anomaly_score > 0.7.
-
-    Devuelve dict con:
-        his, estado, condicion_probable, confianza,
-        accion_recomendada, justificacion
-    O un fallback si Gemini falla.
-    """
     try:
         model  = _get_model()
         prompt = build_analysis_prompt(
@@ -112,10 +99,6 @@ def chat(mensaje: str, historial_chat: list, contexto_herd: dict) -> str:
 
 
 def _fallback(cow_id: str, anomaly_score: float, his: int, error: str) -> dict:
-    """
-    Respuesta de emergencia si Gemini no está disponible.
-    El sistema no se cae — usa el HIS y el score del IF.
-    """
     if his < 40:
         estado   = "critico"
         accion   = "Revisión veterinaria inmediata"

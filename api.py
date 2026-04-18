@@ -1,6 +1,6 @@
 """
-api.py — microservicio ML de GanaderIA
-Iniciar: uvicorn api:app --port 8001 --reload
+api.py — microservicio ML v2
+Puerto 8001. Dev 2 llama este desde el orquestador.
 """
 import time
 from typing import Optional
@@ -9,129 +9,69 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from src.scorer  import get_anomaly_score, calcular_his, estado_desde_his
+from src.scorer   import get_anomaly_score, calcular_his, estado_desde_his, evaluar_reglas_clinicas
 from src.features import build_features_from_readings
 
-app = FastAPI(title="GanaderIA ML Service", version="0.1.0")
+from src.schemas import *
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="GanaderIA ML Service", version="0.2.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"],
+                   allow_methods=["*"], allow_headers=["*"])
 
-
-# ── Schemas ──────────────────────────────────────────────────────────────────
-
-class FeaturesIn(BaseModel):
-    cow_id:       str
-    window_start: float
-    window_end:   float
-    mean_accel:   float
-    std_accel:    float
-    body_temp:    float
-    lying_ratio:  float
-    temp_trend:   float
+HIS_ALERT_THRESHOLD = 86  # según especificación del proyecto
 
 
-class VetRecordIn(BaseModel):
-    body_temp:  Optional[float] = None   # temperatura rectal medida por vet
-    bhba:       Optional[float] = None   # cetosis
-    rcs:        Optional[int]   = None   # mastitis
-    bcs:        Optional[float] = None   # condición corporal
+def build_response(cow_id, features):
 
-
-class ScoreRequest(BaseModel):
-    features:   FeaturesIn
-    vet_record: Optional[VetRecordIn] = None
-
-
-class RawReadingsRequest(BaseModel):
-    cow_id:   str
-    readings: list   # lista de dicts: {timestamp, accel_x, accel_y, accel_z, body_temp}
-
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-def calcular_clinical_risk(vet: VetRecordIn) -> Optional[dict]:
-    """
-    Estimación por reglas hasta que haya datos para entrenar RandomForest.
-    Devuelve None si no hay datos útiles en el registro.
-    """
-    if not any([vet.body_temp, vet.bhba, vet.rcs, vet.bcs]):
-        return None
-
-    risk = 0.0
-    if vet.body_temp and vet.body_temp > 39.5:
-        risk += 0.3
-    if vet.bhba and vet.bhba > 1.2:
-        risk += 0.4    # cetosis subclínica
-    if vet.rcs and vet.rcs > 400:
-        risk += 0.3    # mastitis subclínica
-    if vet.bcs and vet.bcs < 2.5:
-        risk += 0.2    # condición corporal baja
-
-    risk  = min(1.0, risk)
-    clase = "enferma" if risk > 0.6 else "sospechosa" if risk > 0.3 else "sana"
+    anomaly_score             = get_anomaly_score(features)
+    his, alertas_clinicas     = calcular_his(features, anomaly_score)
+    estado                    = estado_desde_his(his)
+    alerta                    = his < HIS_ALERT_THRESHOLD
 
     return {
-        "clinical_risk_score": round(risk, 3),
-        "clase_probable":      clase,
-        "confianza":           round(0.5 + risk * 0.3, 3),
+        "cow_id":           cow_id,
+        "timestamp":        time.time(),
+        "anomaly_score":    round(anomaly_score, 3),
+        "his":              his,
+        "estado":           estado,
+        "alerta":           alerta,
+        "alertas_clinicas": alertas_clinicas,
     }
 
-
-def build_response(cow_id: str, features: dict, vet: Optional[VetRecordIn] = None) -> dict:
-    clinical_risk        = calcular_clinical_risk(vet) if vet else None
-    clinical_risk_score  = clinical_risk["clinical_risk_score"] if clinical_risk else None
-
-    anomaly_score = get_anomaly_score(features)
-    his           = calcular_his(features, anomaly_score, clinical_risk_score)
-
-    return {
-        "cow_id":        cow_id,
-        "timestamp":     time.time(),
-        "anomaly_score": round(anomaly_score, 3),
-        "his":           his,
-        "estado":        estado_desde_his(his),
-        "alerta":        anomaly_score > 0.7,
-        "clinical_risk": clinical_risk,
-    }
-
-
-# ── Endpoints ────────────────────────────────────────────────────────────────
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "timestamp": time.time()}
+    return {"status": "ok", "version": "0.2.0", "timestamp": time.time()}
 
 
 @app.post("/score")
 def score(req: ScoreRequest):
-    """
-    Endpoint principal — Dev 2 llama este.
-    Recibe features precalculadas → devuelve anomaly_score + HIS.
-    """
     return build_response(
         cow_id   = req.features.cow_id,
         features = req.features.model_dump(),
-        vet      = req.vet_record,
     )
 
 
 @app.post("/score/raw")
 def score_raw(req: RawReadingsRequest):
-    """
-    Alternativa — Dev 2 manda lecturas crudas sin calcular features.
-    El servicio hace el cálculo internamente.
-    """
     features = build_features_from_readings(req.readings, req.cow_id)
-
     if features is None:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Lecturas insuficientes. Mínimo 5, recibidas: {len(req.readings)}"
-        )
-
+        raise HTTPException(422,
+            f"Lecturas insuficientes. Mínimo 5, recibidas: {len(req.readings)}")
     return build_response(cow_id=req.cow_id, features=features)
+
+
+@app.get("/thresholds")
+def thresholds():
+    """Devuelve los umbrales clínicos configurados — útil para el frontend."""
+    return {
+        "his_alerta":        HIS_ALERT_THRESHOLD,
+        "anomaly_alerta":    0.7,
+        "body_temp":         {"normal_max": 39.3, "leve": 39.9, "fiebre": 40.0},
+        "heart_rate":        {"min": 48, "max": 84},
+        "respiratory_rate":  {"min": 18, "max": 44},
+        "rumination_min":    {"alerta": 280},
+        "hydration_freq":    {"min": 7, "max": 12},
+        "humidity":          {"alerta": 40},
+        "thi_score":         {"estres_leve": 72, "estres_alto": 78},
+    }

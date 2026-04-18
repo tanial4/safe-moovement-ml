@@ -1,0 +1,37 @@
+# Dataset — nunca al repo
+data/mmcows_raw/
+data/clean/
+data/*.csv
+
+# Modelos entrenados — se regeneran con 02_train.py
+models/
+*.pkl
+
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Jupyter (por si alguien explora los datos)
+.ipynb_checkpoints/
+*.ipynb
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+*.swp

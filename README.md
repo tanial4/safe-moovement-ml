@@ -1,4 +1,4 @@
-# GanaderIA — ML & AI Service
+# Safe Moovement — ML & AI Service
 
 Sistema de monitoreo inteligente de ganado bovino. Este repo contiene el módulo de Machine Learning y el agente de IA conectado a Gemini.
 
@@ -8,8 +8,6 @@ Sistema de monitoreo inteligente de ganado bovino. Este repo contiene el módulo
 |---|---|---|
 | ML Service | 8001 | Isolation Forest + reglas clínicas |
 | AI Service | 8002 | Agente Gemini — diagnóstico clínico |
-| Backend | 8000 | FastAPI (repo separado, Dev 2) |
-| Frontend | 5173 | React + Leaflet (repo separado, Dev 1) |
 
 ---
 

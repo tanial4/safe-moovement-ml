@@ -12,6 +12,9 @@ models/
 venv/
 env/
 
+# Credenciales / tokens
+.env
+
 # Python
 __pycache__/
 *.pyc
